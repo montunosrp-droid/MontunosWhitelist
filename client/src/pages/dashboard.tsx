@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 import { UserProfileCard } from "@/components/user-profile-card";
 import { WhitelistStatusCard } from "@/components/whitelist-status-card";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -18,6 +19,12 @@ export default function Dashboard() {
     queryKey: ['/api/whitelist/check'],
     enabled: !!user,
   });
+
+  useEffect(() => {
+    if (!userLoading && (userError || !user)) {
+      setLocation('/');
+    }
+  }, [userLoading, userError, user, setLocation]);
 
   const handleLogout = async () => {
     try {
@@ -38,7 +45,6 @@ export default function Dashboard() {
   }
 
   if (userError || !user) {
-    setLocation('/');
     return null;
   }
 
