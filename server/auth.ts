@@ -2,11 +2,21 @@ import passport from "passport";
 import { Strategy as DiscordStrategy } from "passport-discord";
 import type { Express } from "express";
 import { storage } from "./storage";
-import type { User, InsertUser } from "@shared/schema";
+import type { User as UserType, InsertUser } from "@shared/schema";
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User {
+      id: string;
+      discordId: string;
+      username: string;
+      discriminator: string | null;
+      avatar: string | null;
+      email: string | null;
+      accessToken: string | null;
+      refreshToken: string | null;
+      createdAt: Date;
+    }
   }
 }
 
@@ -23,7 +33,7 @@ export function setupAuth(app: Express) {
         callbackURL: process.env.DISCORD_REDIRECT_URI,
         scope: ["identify", "email"],
       },
-      async (_accessToken, _refreshToken, profile, done) => {
+      async (_accessToken: string, _refreshToken: string, profile: any, done: any) => {
         try {
           let user = await storage.getUserByDiscordId(profile.id);
 
