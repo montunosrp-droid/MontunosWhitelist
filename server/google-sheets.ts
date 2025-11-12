@@ -1,26 +1,34 @@
 import { google } from "googleapis";
 import type { WhitelistEntry } from "@shared/schema";
+import fs from "fs";
 
 export class GoogleSheetsService {
   private sheets;
   private spreadsheetId: string;
 
-  constructor() {
-    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY || !process.env.GOOGLE_SHEETS_SPREADSHEET_ID) {
-      throw new Error("Google Sheets credentials not configured");
-    }
+ constructor() {
+  // Ruta del archivo de credenciales (Render -> Secret Files)
+  const keyFile =
+    process.env.GOOGLE_APPLICATION_CREDENTIALS || "/etc/secrets/google-sa.json";
 
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      },
-      scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-    });
+  console.log("GOOGLE_APPLICATION_CREDENTIALS =", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  console.log("Existe el archivo de credenciales? ", fs.existsSync(keyFile));
 
-    this.sheets = google.sheets({ version: "v4", auth });
-    this.spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  if (!fs.existsSync(keyFile)) {
+    throw new Error(`Google Sheets credentials file not found at: ${keyFile}`);
   }
+
+  const auth = new google.auth.GoogleAuth({
+    keyFile,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+  });
+
+  this.sheets = google.sheets({ version: "v4", auth });
+
+  // Usa tu variable real de Render
+  this.spreadsheetId = process.env.SHEET_ID as string;
+}
+
 
   async getWhitelistEntries(): Promise<WhitelistEntry[]> {
     try {
