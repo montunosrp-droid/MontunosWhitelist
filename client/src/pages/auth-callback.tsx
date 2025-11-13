@@ -13,9 +13,8 @@ export default function AuthCallback() {
       console.error("Authentication error:", error);
       setTimeout(() => setLocation("/?error=" + error), 2000);
     } else {
-      // 👇 Conservamos TODOS los query params (?f=1, etc.)
-      const search = window.location.search; // ej: "?f=2" o vacío
-      // Antes: /dashboard
+      // Conservamos TODOS los query params (?f=1 o ?f=2)
+      const search = window.location.search; // ej: "?f=2"
       setTimeout(() => setLocation(`/instructions${search}`), 1000);
     }
   }, [setLocation]);
