@@ -21,8 +21,8 @@ app.get(
   }),
   (req, res) => {
     const forms = [
-      "https://forms.gle/RxuuDMGCMGcKoEfD17",
-      "https://forms.gle/fsbLf9Mw9B9ey92dA"
+      "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform?usp=dialog",
+      "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform?usp=dialog"
     ];
 
     const randomIndex = Math.floor(Math.random() * forms.length);
