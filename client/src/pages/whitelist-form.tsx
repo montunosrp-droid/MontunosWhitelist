@@ -6,9 +6,10 @@ import type { User } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const TOTAL_TIME_SECONDS = 15 * 60; // 15 minutos
+// ⏱ 15 minutos
+const TOTAL_TIME_SECONDS = 15 * 60;
 
-// Config de formularios (luego le metemos bien tus entry nuevos)
+// 🔗 Config de formularios: SOLO ID
 const FORMS = {
   "1": {
     baseUrl:
@@ -22,23 +23,6 @@ const FORMS = {
   },
 };
 
-// Construcción de URL — SOLO ID
-useEffect(() => {
-  if (!user) return;
-
-  const params = new URLSearchParams(window.location.search);
-  const fParam = params.get("f") ?? "1";
-
-  const config = FORMS[fParam as "1" | "2"] ?? FORMS["1"];
-
-  const userId = encodeURIComponent(user.discordId);
-
-  const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${userId}`;
-
-  setFormUrl(url);
-}, [user]);
-
-
 export default function WhitelistFormPage() {
   const [, setLocation] = useLocation();
 
@@ -50,7 +34,7 @@ export default function WhitelistFormPage() {
     queryKey: ["/api/auth/user"],
   });
 
-  // TIMER
+  // ⏱ TIMER
   useEffect(() => {
     const timer = setInterval(() => {
       setSecondsLeft((prev) => {
@@ -66,22 +50,21 @@ export default function WhitelistFormPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // URL pre-rellena (ID + nombre)
+  // 🔗 Construcción de URL (solo ID)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fParam = params.get("f") ?? "1";
 
     const config = FORMS[fParam as "1" | "2"] ?? FORMS["1"];
 
+    // Si por alguna razón no hay user, igual mostramos el form normal
     if (!user) {
       setFormUrl(config.baseUrl);
       return;
     }
 
     const userId = encodeURIComponent(user.discordId);
-    const userName = encodeURIComponent(user.username);
-
-    const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${userId}&${config.nameField}=${userName}`;
+    const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${userId}`;
 
     setFormUrl(url);
   }, [user]);
@@ -107,13 +90,22 @@ export default function WhitelistFormPage() {
                 Formulario de Whitelist – Montunos RP V2
               </h1>
               <p className="text-xs md:text-sm text-slate-300 mt-1">
-                Tienes <span className="font-semibold text-orange-400">15 minutos</span>{" "}
-                para completar el formulario. No cambies de pestaña, no recargues la
-                página y no copies respuestas.
+                Tienes{" "}
+                <span className="font-semibold text-orange-400">
+                  15 minutos
+                </span>{" "}
+                para completar el formulario. No cambies de pestaña, no
+                recargues la página y no copies respuestas.
               </p>
             </div>
 
-            <Card className={`w-full md:w-auto bg-slate-900/80 border ${isTimeOver ? "border-red-500/80" : "border-orange-400/80"}`}>
+            <Card
+              className={`w-full md:w-auto bg-slate-900/80 border ${
+                isTimeOver
+                  ? "border-red-500/80"
+                  : "border-orange-400/80"
+              }`}
+            >
               <CardContent className="py-2 px-4 flex items-center gap-3">
                 <div className="text-xs text-slate-300 uppercase tracking-wide">
                   Tiempo restante
@@ -134,8 +126,8 @@ export default function WhitelistFormPage() {
         {isTimeOver && (
           <Card className="bg-red-950/70 border border-red-500/70">
             <CardContent className="py-3 px-4 text-sm text-red-200">
-              El tiempo ha finalizado. Si aún no enviaste el formulario, tus respuestas
-              podrían no ser tomadas en cuenta.
+              El tiempo ha finalizado. Si aún no enviaste el formulario, tus
+              respuestas podrían no ser tomadas en cuenta.
             </CardContent>
           </Card>
         )}
@@ -178,3 +170,4 @@ export default function WhitelistFormPage() {
     </div>
   );
 }
+
