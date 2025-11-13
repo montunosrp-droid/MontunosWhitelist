@@ -5,10 +5,26 @@ import { useLocation } from "wouter";
 
 const TOTAL_TIME_SECONDS = 12 * 60; // 12 minutos
 
+// Función que decide qué URL de Google Form usar según el parámetro ?f=
+function getFormUrlFromQuery(): string {
+  const params = new URLSearchParams(window.location.search);
+  const formId = params.get("f") ?? "1"; // por defecto 1 si no viene nada
+
+  if (formId === "2") {
+    // 👇 PON AQUÍ EL LINK DEL SEGUNDO FORMULARIO
+    return "https://docs.google.com/forms/d/TU_FORM_ID_2/viewform";
+  }
+
+  // 👇 PON AQUÍ EL LINK DEL PRIMER FORMULARIO
+  return "https://docs.google.com/forms/d/TU_FORM_ID_1/viewform";
+}
+
 export default function WhitelistFormPage() {
   const [, setLocation] = useLocation();
   const [secondsLeft, setSecondsLeft] = useState(TOTAL_TIME_SECONDS);
   const [isTimeOver, setIsTimeOver] = useState(false);
+
+  const formUrl = getFormUrlFromQuery();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -30,7 +46,7 @@ export default function WhitelistFormPage() {
   const seconds = secondsLeft % 60;
 
   const handleExit = () => {
-    setLocation("/"); // o "/dashboard" si querés
+    setLocation("/"); // o "/dashboard" si preferís
   };
 
   return (
@@ -63,6 +79,7 @@ export default function WhitelistFormPage() {
           </Card>
         </div>
 
+        {/* Aviso cuando se acaba el tiempo */}
         {isTimeOver && (
           <Card className="border-destructive">
             <CardContent className="py-3 px-4 text-sm text-destructive">
@@ -82,7 +99,7 @@ export default function WhitelistFormPage() {
           <CardContent className="h-[70vh]">
             <iframe
               title="Whitelist Montunos RP V2"
-              src="https://docs.google.com/forms/d/TU_FORM_ID/viewform"
+              src={formUrl}
               className="w-full h-full border-0 rounded-md"
             />
           </CardContent>
