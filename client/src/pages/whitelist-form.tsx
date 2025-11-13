@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import type { User } from "@shared/schema";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// ⏱ 15 minutos
-const TOTAL_TIME_SECONDS = 15 * 60;
+const TOTAL_TIME_SECONDS = 15 * 60; // 15 minutos
 
-// 🔗 Config de formularios: SOLO ID
-const FORMS = {
+// Config de formularios: SOLO ID, sin nombre
+const FORMS: Record<"1" | "2", { baseUrl: string; idField: string }> = {
   "1": {
     baseUrl:
       "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform",
@@ -30,11 +27,7 @@ export default function WhitelistFormPage() {
   const [isTimeOver, setIsTimeOver] = useState(false);
   const [formUrl, setFormUrl] = useState<string>("");
 
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
-  });
-
-  // ⏱ TIMER
+  // TIMER
   useEffect(() => {
     const timer = setInterval(() => {
       setSecondsLeft((prev) => {
@@ -50,24 +43,26 @@ export default function WhitelistFormPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔗 Construcción de URL (solo ID)
+  // Construcción de URL con ID del query (?id=...)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const fParam = params.get("f") ?? "1";
 
-    const config = FORMS[fParam as "1" | "2"] ?? FORMS["1"];
+    const fParam = (params.get("f") ?? "1") as "1" | "2";
+    const discordId = params.get("id");
 
-    // Si por alguna razón no hay user, igual mostramos el form normal
-    if (!user) {
+    const config = FORMS[fParam] ?? FORMS["1"];
+
+    // Si por alguna razón no viene id, mostramos el form sin prefill
+    if (!discordId) {
       setFormUrl(config.baseUrl);
       return;
     }
 
-    const userId = encodeURIComponent(user.discordId);
-    const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${userId}`;
+    const encodedId = encodeURIComponent(discordId);
+    const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${encodedId}`;
 
     setFormUrl(url);
-  }, [user]);
+  }, []);
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
@@ -91,19 +86,15 @@ export default function WhitelistFormPage() {
               </h1>
               <p className="text-xs md:text-sm text-slate-300 mt-1">
                 Tienes{" "}
-                <span className="font-semibold text-orange-400">
-                  15 minutos
-                </span>{" "}
-                para completar el formulario. No cambies de pestaña, no
-                recargues la página y no copies respuestas.
+                <span className="font-semibold text-orange-400">15 minutos</span>{" "}
+                para completar el formulario. No cambies de pestaña, no recargues la
+                página y no copies respuestas.
               </p>
             </div>
 
             <Card
               className={`w-full md:w-auto bg-slate-900/80 border ${
-                isTimeOver
-                  ? "border-red-500/80"
-                  : "border-orange-400/80"
+                isTimeOver ? "border-red-500/80" : "border-orange-400/80"
               }`}
             >
               <CardContent className="py-2 px-4 flex items-center gap-3">
@@ -126,8 +117,8 @@ export default function WhitelistFormPage() {
         {isTimeOver && (
           <Card className="bg-red-950/70 border border-red-500/70">
             <CardContent className="py-3 px-4 text-sm text-red-200">
-              El tiempo ha finalizado. Si aún no enviaste el formulario, tus
-              respuestas podrían no ser tomadas en cuenta.
+              El tiempo ha finalizado. Si aún no enviaste el formulario, tus respuestas
+              podrían no ser tomadas en cuenta.
             </CardContent>
           </Card>
         )}
@@ -170,4 +161,3 @@ export default function WhitelistFormPage() {
     </div>
   );
 }
-
