@@ -20,7 +20,6 @@ app.get(
     failureRedirect: "/?error=auth_failed",
   }),
   (req, res) => {
-
     const forms = [
       "https://forms.gle/RxuuDMGCMGcKoEfD17",
       "https://forms.gle/fsbLf9Mw9B9ey92dA"
