@@ -14,7 +14,7 @@ function requireAuth(req: any, res: any, next: any) {
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", passport.authenticate("discord"));
 
-  // CALLBACK
+  // CALLBACK DISCORD
   app.get(
     "/api/auth/discord/callback",
     passport.authenticate("discord", {
@@ -25,29 +25,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect("/?error=no_user");
       }
 
-      // ---- FORMULARIOS DISPONIBLES ----
-      const forms = [
-        { id: "1" },
-        { id: "2" }
-      ];
+      // Discord ID del usuario autenticado
+      const userId = req.user.discordId;
 
-      // ---- Elegir al azar ----
+      // Formularios disponibles (solo índice 1 ó 2)
+      const forms = [{ id: "1" }, { id: "2" }];
+
+      // Elegir formulario al azar
       const randomIndex = Math.floor(Math.random() * forms.length);
       const f = forms[randomIndex].id;
 
-      console.log("Formulario seleccionado:", f);
+      console.log("Formulario seleccionado:", f, "Usuario:", userId);
 
-      // 🔥 Redirige al frontend SOLO con el número de formulario
-      res.redirect(`/auth/callback?f=${f}`);
+      // 🔥 Mandamos también el ID en el query string
+      res.redirect(`/auth/callback?f=${f}&id=${userId}`);
     }
   );
 
-  // ---- USER SESSION ----
+  // USER SESSION
   app.get("/api/auth/user", requireAuth, (req, res) => {
     res.json(req.user);
   });
 
-  // ---- LOGOUT ----
+  // LOGOUT
   app.post("/api/auth/logout", (req, res) => {
     req.logout((err) => {
       if (err) return res.status(500).json({ error: "Logout failed" });
@@ -59,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // ---- WHITELIST CHECK ----
+  // WHITELIST CHECK
   app.get("/api/whitelist/check", requireAuth, async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: "Not authenticated" });
@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error checking whitelist:", error);
       res.status(500).json({
         error: "Failed to check whitelist status",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
