@@ -7,13 +7,16 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const error = params.get('error');
+    const error = params.get("error");
 
     if (error) {
-      console.error('Authentication error:', error);
-      setTimeout(() => setLocation('/?error=' + error), 2000);
+      console.error("Authentication error:", error);
+      setTimeout(() => setLocation("/?error=" + error), 2000);
     } else {
-      setTimeout(() => setLocation('/dashboard'), 1000);
+      // 👇 Conservamos TODOS los query params (?f=1, etc.)
+      const search = window.location.search; // ej: "?f=2" o vacío
+      // Antes: /dashboard
+      setTimeout(() => setLocation(`/instructions${search}`), 1000);
     }
   }, [setLocation]);
 
@@ -21,7 +24,9 @@ export default function AuthCallback() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         <LoadingSpinner size="lg" text="Completing authentication..." />
-        <p className="text-sm text-muted-foreground">Please wait while we redirect you</p>
+        <p className="text-sm text-muted-foreground">
+          Please wait while we redirect you
+        </p>
       </div>
     </div>
   );
