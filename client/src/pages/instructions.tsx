@@ -6,8 +6,9 @@ export default function Instructions() {
   const [, setLocation] = useLocation();
 
   const handleStart = () => {
-    // Ruta donde está tu formulario con timer
-    setLocation("/whitelist-form");
+    // Conservamos el query param ?f=1 o ?f=2 que vino desde el bot
+    const search = window.location.search; // ej: ?f=1
+    setLocation(`/whitelist-form${search}`);
   };
 
   return (
