@@ -7,8 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import AuthCallback from "@/pages/auth-callback";
-import Instructions from "@/pages/instructions";        // 👈 NUEVO
-import WhitelistFormPage from "@/pages/whitelist-form"; // 👈 NUEVO
+import Instructions from "@/pages/instructions";
+import WhitelistFormPage from "@/pages/whitelist-form";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,16 +17,16 @@ function Router() {
       {/* Login principal */}
       <Route path="/" component={Login} />
 
-      {/* Dashboard normal */}
+      {/* Dashboard (después, para ver estado de whitelist, etc.) */}
       <Route path="/dashboard" component={Dashboard} />
 
       {/* Callback de Discord OAuth */}
       <Route path="/auth/callback" component={AuthCallback} />
 
-      {/* NUEVA pantalla de instrucciones de whitelist */}
+      {/* Pantalla de instrucciones de whitelist */}
       <Route path="/instructions" component={Instructions} />
 
-      {/* NUEVA pantalla de formulario con timer */}
+      {/* Pantalla de formulario con timer */}
       <Route path="/whitelist-form" component={WhitelistFormPage} />
 
       {/* 404 */}
