@@ -12,53 +12,53 @@ function requireAuth(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Iniciar login con Discord
   app.get("/api/auth/discord", passport.authenticate("discord"));
 
-app.get(
-  "/api/auth/discord/callback",
-  passport.authenticate("discord", {
-    failureRedirect: "/?error=auth_failed",
-  }),
-  (req, res) => {
-    if (!req.user) {
-      return res.redirect("/?error=no_user");
-    }
-
-    const userId = req.user.discordId;
-    const userName = encodeURIComponent(req.user.username);
-
-    // Tus formularios con los entry correctos
-    const forms = [
-      {
-        baseUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform",
-        idField: "entry.196485464",
-        nameField: "entry.2052814503"
-      },
-      {
-        baseUrl: "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform",
-        idField: "entry.1991299365",
-        nameField: "entry.1074312098"
+  // Callback de Discord
+  app.get(
+    "/api/auth/discord/callback",
+    passport.authenticate("discord", {
+      failureRedirect: "/?error=auth_failed",
+    }),
+    (req, res) => {
+      if (!req.user) {
+        return res.redirect("/?error=no_user");
       }
-    ];
 
-    // Elegir formulario al azar
-    const randomIndex = Math.floor(Math.random() * forms.length);
-    const f = forms[randomIndex];
+      // Formularios disponibles
+      const forms = [
+        {
+          baseUrl:
+            "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform",
+          idField: "entry.196485464",
+          nameField: "entry.2052814503",
+        },
+        {
+          baseUrl:
+            "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform",
+          idField: "entry.1991299365",
+          nameField: "entry.1074312098",
+        },
+      ];
 
-    // Construir URL final con datos del usuario
-    const finalUrl = `${f.baseUrl}?usp=pp_url&${f.idField}=${userId}&${f.nameField}=${userName}`;
+      // Elegir formulario al azar → 1 o 2
+      const randomIndex = Math.floor(Math.random() * forms.length);
+      const f = String(randomIndex + 1);
 
-    console.log("Redirigiendo al formulario:", finalUrl);
+      console.log("Formulario seleccionado:", f);
 
-    res.redirect(finalUrl);
-  }
-);
+      // Redirigir al FRONTEND -> él hará instrucciones + timer + form
+      res.redirect(`/auth/callback?f=${f}`);
+    }
+  );
 
-
+  // Usuario autenticado
   app.get("/api/auth/user", requireAuth, (req, res) => {
     res.json(req.user);
   });
 
+  // Logout
   app.post("/api/auth/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
@@ -74,24 +74,27 @@ app.get(
     });
   });
 
+  // Check whitelist en Google Sheets
   app.get("/api/whitelist/check", requireAuth, async (req, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const result: WhitelistCheckResult = await googleSheetsService.checkWhitelist(
-        req.user.discordId,
-        req.user.username,
-        req.user.email || undefined
-      );
+      const result: WhitelistCheckResult =
+        await googleSheetsService.checkWhitelist(
+          req.user.discordId,
+          req.user.username,
+          req.user.email || undefined
+        );
 
       res.json(result);
     } catch (error) {
       console.error("Error checking whitelist:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to check whitelist status",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message:
+          error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
