@@ -13,8 +13,7 @@ export default function AuthCallback() {
       console.error("Authentication error:", error);
       setTimeout(() => setLocation("/?error=" + error), 2000);
     } else {
-      // Conservamos TODOS los query params (?f=1 o ?f=2)
-      const search = window.location.search; // ej: "?f=2"
+      const search = window.location.search; // conserva ?f=1 o ?f=2
       setTimeout(() => setLocation(`/instructions${search}`), 1000);
     }
   }, [setLocation]);
@@ -23,9 +22,7 @@ export default function AuthCallback() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         <LoadingSpinner size="lg" text="Completing authentication..." />
-        <p className="text-sm text-muted-foreground">
-          Please wait while we redirect you
-        </p>
+        <p className="text-sm text-muted-foreground">Please wait while we redirect you</p>
       </div>
     </div>
   );
