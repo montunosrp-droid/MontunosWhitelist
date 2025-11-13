@@ -14,15 +14,26 @@ function requireAuth(req: any, res: any, next: any) {
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", passport.authenticate("discord"));
 
-  app.get(
-    "/api/auth/discord/callback",
-    passport.authenticate("discord", {
-      failureRedirect: "/?error=auth_failed",
-    }),
-    (req, res) => {
-      res.redirect("/auth/callback");
-    }
-  );
+app.get(
+  "/api/auth/discord/callback",
+  passport.authenticate("discord", {
+    failureRedirect: "/?error=auth_failed",
+  }),
+  (req, res) => {
+
+    const forms = [
+      "https://forms.gle/RxuuDMGCMGcKoEfD17",
+      "https://forms.gle/fsbLf9Mw9B9ey92dA"
+    ];
+
+    const randomIndex = Math.floor(Math.random() * forms.length);
+    const chosenForm = forms[randomIndex];
+
+    console.log("Redirigiendo al formulario:", chosenForm);
+
+    res.redirect(chosenForm);
+  }
+);
 
   app.get("/api/auth/user", requireAuth, (req, res) => {
     res.json(req.user);
