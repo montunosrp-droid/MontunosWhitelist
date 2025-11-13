@@ -20,19 +20,40 @@ app.get(
     failureRedirect: "/?error=auth_failed",
   }),
   (req, res) => {
+    if (!req.user) {
+      return res.redirect("/?error=no_user");
+    }
+
+    const userId = req.user.discordId;
+    const userName = encodeURIComponent(req.user.username);
+
+    // Tus formularios con los entry correctos
     const forms = [
-      "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform?usp=dialog",
-      "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform?usp=dialog"
+      {
+        baseUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform",
+        idField: "entry.196485464",
+        nameField: "entry.2052814503"
+      },
+      {
+        baseUrl: "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform",
+        idField: "entry.1991299365",
+        nameField: "entry.1074312098"
+      }
     ];
 
+    // Elegir formulario al azar
     const randomIndex = Math.floor(Math.random() * forms.length);
-    const chosenForm = forms[randomIndex];
+    const f = forms[randomIndex];
 
-    console.log("Redirigiendo al formulario:", chosenForm);
+    // Construir URL final con datos del usuario
+    const finalUrl = `${f.baseUrl}?usp=pp_url&${f.idField}=${userId}&${f.nameField}=${userName}`;
 
-    res.redirect(chosenForm);
+    console.log("Redirigiendo al formulario:", finalUrl);
+
+    res.redirect(finalUrl);
   }
 );
+
 
   app.get("/api/auth/user", requireAuth, (req, res) => {
     res.json(req.user);
