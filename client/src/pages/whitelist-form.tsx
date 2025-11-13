@@ -14,15 +14,30 @@ const FORMS = {
     baseUrl:
       "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform",
     idField: "entry.196485464",
-    nameField: "entry.2052814503",
   },
   "2": {
     baseUrl:
       "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform",
     idField: "entry.1991299365",
-    nameField: "entry.1074312098",
   },
 };
+
+// Construcción de URL — SOLO ID
+useEffect(() => {
+  if (!user) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const fParam = params.get("f") ?? "1";
+
+  const config = FORMS[fParam as "1" | "2"] ?? FORMS["1"];
+
+  const userId = encodeURIComponent(user.discordId);
+
+  const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${userId}`;
+
+  setFormUrl(url);
+}, [user]);
+
 
 export default function WhitelistFormPage() {
   const [, setLocation] = useLocation();
