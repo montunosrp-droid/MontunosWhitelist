@@ -5,60 +5,65 @@ import { googleSheetsService } from "./google-sheets";
 import type { WhitelistCheckResult } from "@shared/schema";
 
 function requireAuth(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) return next();
+  if (req.isAuthenticated()) {
+    return next();
+  }
   res.status(401).json({ error: "Not authenticated" });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", passport.authenticate("discord"));
 
+  // CALLBACK
   app.get(
     "/api/auth/discord/callback",
     passport.authenticate("discord", {
       failureRedirect: "/?error=auth_failed",
     }),
     (req, res) => {
-      if (!req.user) return res.redirect("/?error=no_user");
+      if (!req.user) {
+        return res.redirect("/?error=no_user");
+      }
 
-      // FORMULARIOS — SOLO DISCORD ID
+      // ---- FORMULARIOS DISPONIBLES ----
       const forms = [
-        {
-          baseUrl:
-            "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform",
-          idField: "entry.196485464",
-        },
-        {
-          baseUrl:
-            "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform",
-          idField: "entry.1991299365",
-        },
+        { id: "1" },
+        { id: "2" }
       ];
 
+      // ---- Elegir al azar ----
       const randomIndex = Math.floor(Math.random() * forms.length);
-      const f = String(randomIndex + 1);
+      const f = forms[randomIndex].id;
 
       console.log("Formulario seleccionado:", f);
 
-      // FRONTEND se encargará de meter el ID
+      // 🔥 Redirige al frontend SOLO con el número de formulario
       res.redirect(`/auth/callback?f=${f}`);
     }
   );
 
+  // ---- USER SESSION ----
   app.get("/api/auth/user", requireAuth, (req, res) => {
     res.json(req.user);
   });
 
+  // ---- LOGOUT ----
   app.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      req.session.destroy(() => {
+    req.logout((err) => {
+      if (err) return res.status(500).json({ error: "Logout failed" });
+      req.session.destroy((err) => {
+        if (err) return res.status(500).json({ error: "Session destruction failed" });
         res.clearCookie("connect.sid");
         res.json({ success: true });
       });
     });
   });
 
+  // ---- WHITELIST CHECK ----
   app.get("/api/whitelist/check", requireAuth, async (req, res) => {
     try {
+      if (!req.user) return res.status(401).json({ error: "Not authenticated" });
+
       const result: WhitelistCheckResult = await googleSheetsService.checkWhitelist(
         req.user.discordId,
         req.user.username,
@@ -67,8 +72,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(result);
     } catch (error) {
+      console.error("Error checking whitelist:", error);
       res.status(500).json({
         error: "Failed to check whitelist status",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
