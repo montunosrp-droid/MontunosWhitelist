@@ -12,11 +12,11 @@ function getFormUrlFromQuery(): string {
 
   if (formId === "2") {
     // 👇 PON AQUÍ EL LINK DEL SEGUNDO FORMULARIO
-    return "https://docs.google.com/forms/d/TU_FORM_ID_2/viewform";
+    return "https://docs.google.com/forms/d/e/1FAIpQLSebFJ35j4b4cPDYos8Wx2NtmzCUsYTRT2Bg8nOgxQfEErQ4dg/viewform?usp=dialog";
   }
 
   // 👇 PON AQUÍ EL LINK DEL PRIMER FORMULARIO
-  return "https://docs.google.com/forms/d/TU_FORM_ID_1/viewform";
+  return "https://docs.google.com/forms/d/e/1FAIpQLSdGJQRBMUi836oxKlSYwBKulZ2XsKdJXiFdpucCScRQUaI9YA/viewform?usp=dialog";
 }
 
 export default function WhitelistFormPage() {
