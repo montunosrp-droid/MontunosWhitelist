@@ -6,9 +6,9 @@ import type { User } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const TOTAL_TIME_SECONDS = 12 * 60; // 12 minutos
+const TOTAL_TIME_SECONDS = 15 * 60; // 15 minutos
 
-// Misma info de formularios que tenías en el server
+// Config de formularios (luego le metemos bien tus entry nuevos)
 const FORMS = {
   "1": {
     baseUrl:
@@ -31,12 +31,11 @@ export default function WhitelistFormPage() {
   const [isTimeOver, setIsTimeOver] = useState(false);
   const [formUrl, setFormUrl] = useState<string>("");
 
-  // Traemos los datos del usuario logueado
   const { data: user } = useQuery<User>({
     queryKey: ["/api/auth/user"],
   });
 
-  // Timer
+  // TIMER
   useEffect(() => {
     const timer = setInterval(() => {
       setSecondsLeft((prev) => {
@@ -52,14 +51,13 @@ export default function WhitelistFormPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Construir URL del formulario (con ID + nombre si tenemos user)
+  // URL pre-rellena (ID + nombre)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fParam = params.get("f") ?? "1";
 
     const config = FORMS[fParam as "1" | "2"] ?? FORMS["1"];
 
-    // Si aún no hay user, mostramos el form sin pre-relleno
     if (!user) {
       setFormUrl(config.baseUrl);
       return;
@@ -77,57 +75,64 @@ export default function WhitelistFormPage() {
   const seconds = secondsLeft % 60;
 
   const handleExit = () => {
-    setLocation("/"); // o "/dashboard" si prefieres
+    setLocation("/");
   };
 
+  const timeText =
+    String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col items-center">
-      <div className="w-full max-w-5xl space-y-4">
-        {/* Header + Timer */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold font-display">
-              Formulario de Whitelist – Montunos RP V2
-            </h1>
-            <p className="text-xs md:text-sm text-muted-foreground">
-              Tienes <strong>12 minutos</strong> para completar el formulario. No
-              cambies de pestaña, no recargues la página y no copies respuestas.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50 flex flex-col items-center p-4">
+      <div className="w-full max-w-5xl space-y-5">
+        {/* HEADER + TIMER */}
+        <Card className="bg-slate-950/80 border border-orange-500/50 shadow-2xl">
+          <CardContent className="py-4 px-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold font-display text-white">
+                Formulario de Whitelist – Montunos RP V2
+              </h1>
+              <p className="text-xs md:text-sm text-slate-300 mt-1">
+                Tienes <span className="font-semibold text-orange-400">15 minutos</span>{" "}
+                para completar el formulario. No cambies de pestaña, no recargues la
+                página y no copies respuestas.
+              </p>
+            </div>
 
-          <Card className={`w-full sm:w-auto ${isTimeOver ? "border-destructive" : ""}`}>
-            <CardContent className="py-3 px-4 flex items-center gap-3">
-              <div className="text-xs text-muted-foreground">Tiempo restante</div>
-              <div
-                className={`text-lg font-mono font-semibold ${
-                  isTimeOver ? "text-destructive" : ""
-                }`}
-              >
-                {String(minutes).padStart(2, "0")}:
-                {String(seconds).padStart(2, "0")}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <Card className={`w-full md:w-auto bg-slate-900/80 border ${isTimeOver ? "border-red-500/80" : "border-orange-400/80"}`}>
+              <CardContent className="py-2 px-4 flex items-center gap-3">
+                <div className="text-xs text-slate-300 uppercase tracking-wide">
+                  Tiempo restante
+                </div>
+                <div
+                  className={`text-lg font-mono font-semibold ${
+                    isTimeOver ? "text-red-400" : "text-orange-400"
+                  }`}
+                >
+                  {timeText}
+                </div>
+              </CardContent>
+            </Card>
+          </CardContent>
+        </Card>
 
-        {/* Aviso cuando se acaba el tiempo */}
+        {/* AVISO TIEMPO ACABADO */}
         {isTimeOver && (
-          <Card className="border-destructive">
-            <CardContent className="py-3 px-4 text-sm text-destructive">
-              El tiempo ha finalizado. Si aún no enviaste el formulario, tus
-              respuestas podrían no ser tomadas en cuenta. Por favor, envía lo que
-              alcanzaste a responder.
+          <Card className="bg-red-950/70 border border-red-500/70">
+            <CardContent className="py-3 px-4 text-sm text-red-200">
+              El tiempo ha finalizado. Si aún no enviaste el formulario, tus respuestas
+              podrían no ser tomadas en cuenta.
             </CardContent>
           </Card>
         )}
 
-        {/* Google Form */}
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-base md:text-lg">
+        {/* FORMULARIO */}
+        <Card className="overflow-hidden bg-slate-950/80 border border-slate-800 shadow-2xl">
+          <CardHeader className="border-b border-slate-800">
+            <CardTitle className="text-base md:text-lg text-slate-100">
               Responde todas las preguntas con calma pero sin detenerte.
             </CardTitle>
           </CardHeader>
+
           <CardContent className="h-[70vh]">
             {formUrl ? (
               <iframe
@@ -136,15 +141,21 @@ export default function WhitelistFormPage() {
                 className="w-full h-full border-0 rounded-md"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
+              <div className="w-full h-full flex items-center justify-center text-sm text-slate-300">
                 Cargando formulario...
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* BOTÓN SALIR */}
         <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={handleExit}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExit}
+            className="text-slate-300 hover:text-white hover:bg-slate-800/80"
+          >
             Salir
           </Button>
         </div>
