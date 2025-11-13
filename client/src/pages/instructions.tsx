@@ -43,7 +43,7 @@ export default function Instructions() {
           <CardContent className="space-y-4 text-sm">
             <ul className="list-disc list-inside space-y-2 text-slate-200 text-left">
               <li>
-                Tendrás <strong className="text-orange-300">12 minutos</strong> para completar el formulario.
+                Tendrás <strong className="text-orange-300">15 minutos</strong> para completar el formulario.
               </li>
               <li>
                 <strong className="text-orange-300">
