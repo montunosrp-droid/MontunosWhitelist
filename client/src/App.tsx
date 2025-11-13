@@ -14,22 +14,14 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      {/* Login principal */}
       <Route path="/" component={Login} />
-
-      {/* Dashboard (después, para ver estado de whitelist, etc.) */}
       <Route path="/dashboard" component={Dashboard} />
-
-      {/* Callback de Discord OAuth */}
       <Route path="/auth/callback" component={AuthCallback} />
 
-      {/* Pantalla de instrucciones de whitelist */}
+      {/* 👇 ESTAS DOS SON LAS RUTAS IMPORTANTES */}
       <Route path="/instructions" component={Instructions} />
-
-      {/* Pantalla de formulario con timer */}
       <Route path="/whitelist-form" component={WhitelistFormPage} />
 
-      {/* 404 */}
       <Route component={NotFound} />
     </Switch>
   );
