@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import AuthCallback from "@/pages/auth-callback";
 import Instructions from "@/pages/instructions";
 import WhitelistFormPage from "@/pages/whitelist-form";
+import CooldownPage from "@/pages/cooldown";   // 👈 AGREGA ESTA LÍNEA
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,9 +19,12 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/auth/callback" component={AuthCallback} />
 
-      {/* 👇 ESTAS DOS SON LAS RUTAS IMPORTANTES */}
+      {/* 👇 TUS RUTAS IMPORTANTES */}
       <Route path="/instructions" component={Instructions} />
       <Route path="/whitelist-form" component={WhitelistFormPage} />
+
+      {/* 👇 AGREGA ESTA NUEVA RUTA DEL COOLDOWN */}
+      <Route path="/cooldown" component={CooldownPage} />
 
       <Route component={NotFound} />
     </Switch>
