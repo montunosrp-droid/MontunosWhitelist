@@ -1,52 +1,58 @@
-import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
-export default function AlreadyWhitelistedPage() {
+export default function AlreadyWhitelisted() {
   const [, setLocation] = useLocation();
 
-  const handleBack = () => {
-    setLocation("/"); // Te regresa al login/inicio
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50 p-4">
       <div className="w-full max-w-lg">
-        <Card className="bg-slate-950/90 border border-emerald-500/60 shadow-2xl">
+
+        {/* LOGO CENTRADO */}
+        <div className="flex justify-center mb-4">
+          <img
+            src="/montunos-logo.png" 
+            alt="Montunos Logo"
+            className="w-20 h-20 drop-shadow-[0_0_10px_rgba(255,140,0,0.6)]"
+          />
+        </div>
+
+        <Card className="bg-slate-950/90 border border-orange-500/60 shadow-2xl">
           <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-2xl font-display text-emerald-400">
-              Ya tienes Whitelist ✅
+            <CardTitle className="text-3xl font-display text-orange-400">
+              ¿Y vos qué hacés aquí? 😏
             </CardTitle>
-            <p className="text-xs text-slate-400 uppercase tracking-wide">
-              Montunos RP V2 · Sistema de Verificación
+            <p className="text-sm text-slate-400">
+              Montunos RP V2 · Sistema de Whitelist
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-4 text-center text-sm text-slate-200">
-            <p>
-              Tu usuario ya cuenta con <span className="font-semibold">Whitelist aprobada</span> 
-              {" "}en <span className="font-semibold">Montunos RP V2</span>.
+          <CardContent className="space-y-5 text-center text-slate-200">
+            
+            <p className="text-lg font-semibold text-orange-300">
+              ¡Si vos YA TENÉS WHITELIST, chele! 
             </p>
 
             <p>
-              No es necesario que vuelvas a completar el formulario.  
-              Si sigues teniendo problemas para ingresar al servidor, comunícate con el Staff.
+              Andás queriendo hacer otra WL o que onda, ya su WL esta {" "}
+              <span className="font-semibold text-orange-400">
+                APROBADA
+              </span>.
             </p>
 
-            <p className="text-xs text-slate-400">
-              Si consideras que esto es un error, abre un ticket en Discord e incluye tu{" "}
-              <span className="font-semibold text-emerald-300">ID de Discord</span> para que puedan revisarlo.
+            <p>
+              Mejor dejá de andar curioseando aquí y andá a rolear, 
+              a trabajar, a delinquir (legalmente 👀) o hacer billete en la city. 💸
             </p>
 
-            <div className="pt-3">
-              <Button
-                onClick={handleBack}
-                className="w-full h-10 text-sm font-semibold"
-                variant="outline"
-              >
-                Volver al inicio
-              </Button>
-            </div>
+
+            <Button
+              className="w-full bg-orange-500 hover:bg-orange-600 text-slate-950 font-semibold mt-4"
+              onClick={() => setLocation("/dashboard")}
+            >
+              VOLVER AL PANEL
+            </Button>
           </CardContent>
         </Card>
       </div>
