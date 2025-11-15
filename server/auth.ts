@@ -21,7 +21,11 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
-  if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET || !process.env.DISCORD_REDIRECT_URI) {
+  if (
+    !process.env.DISCORD_CLIENT_ID ||
+    !process.env.DISCORD_CLIENT_SECRET ||
+    !process.env.DISCORD_REDIRECT_URI
+  ) {
     throw new Error("Discord OAuth credentials not configured");
   }
 
@@ -31,9 +35,10 @@ export function setupAuth(app: Express) {
         clientID: process.env.DISCORD_CLIENT_ID,
         clientSecret: process.env.DISCORD_CLIENT_SECRET,
         callbackURL: process.env.DISCORD_REDIRECT_URI,
-        scope: ["identify", "email"],
+        // 👇 AQUI EL CAMBIO IMPORTANTE
+        scope: ["identify", "email", "guilds.members.read"],
       },
-      async (_accessToken: string, _refreshToken: string, profile: any, done: any) => {
+      async (accessToken: string, refreshToken: string, profile: any, done: any) => {
         try {
           let user = await storage.getUserByDiscordId(profile.id);
 
@@ -43,8 +48,9 @@ export function setupAuth(app: Express) {
             discriminator: profile.discriminator,
             avatar: profile.avatar,
             email: profile.email,
-            accessToken: _accessToken,
-            refreshToken: _refreshToken,
+            // 👇 Guardamos lo que nos da Discord, igual que antes
+            accessToken,
+            refreshToken,
           };
 
           if (user) {
@@ -65,7 +71,7 @@ export function setupAuth(app: Express) {
     )
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: any, done) => {
     done(null, user.id);
   });
 
@@ -81,3 +87,4 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 }
+
