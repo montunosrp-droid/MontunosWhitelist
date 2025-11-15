@@ -9,7 +9,8 @@ import Dashboard from "@/pages/dashboard";
 import AuthCallback from "@/pages/auth-callback";
 import Instructions from "@/pages/instructions";
 import WhitelistFormPage from "@/pages/whitelist-form";
-import CooldownPage from "@/pages/cooldown";   // 👈 AGREGA ESTA LÍNEA
+import CooldownPage from "@/pages/cooldown";
+import AlreadyWhitelistedPage from "@/pages/already-whitelisted"; // 👈 NUEVO
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,12 +20,11 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/auth/callback" component={AuthCallback} />
 
-      {/* 👇 TUS RUTAS IMPORTANTES */}
+      {/* Rutas del flujo de whitelist */}
       <Route path="/instructions" component={Instructions} />
       <Route path="/whitelist-form" component={WhitelistFormPage} />
-
-      {/* 👇 AGREGA ESTA NUEVA RUTA DEL COOLDOWN */}
       <Route path="/cooldown" component={CooldownPage} />
+      <Route path="/already-whitelisted" component={AlreadyWhitelistedPage} /> {/* 👈 NUEVA RUTA */}
 
       <Route component={NotFound} />
     </Switch>
