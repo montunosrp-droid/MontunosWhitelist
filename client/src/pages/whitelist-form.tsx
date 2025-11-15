@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const TOTAL_TIME_SECONDS = 15 * 60; // 15 minutos
+const TOTAL_TIME_SECONDS = 20 * 60; // 15 minutos
 
 // Config de formularios: SOLO ID, sin nombre
 const FORMS: Record<"1" | "2", { baseUrl: string; idField: string }> = {
