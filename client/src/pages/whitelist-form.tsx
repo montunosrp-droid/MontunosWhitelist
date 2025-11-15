@@ -86,7 +86,7 @@ export default function WhitelistFormPage() {
               </h1>
               <p className="text-xs md:text-sm text-slate-300 mt-1">
                 Tienes{" "}
-                <span className="font-semibold text-orange-400">15 minutos</span>{" "}
+                <span className="font-semibold text-orange-400">20 minutos</span>{" "}
                 para completar el formulario. No cambies de pestaña, no recargues la
                 página y no copies respuestas.
               </p>
