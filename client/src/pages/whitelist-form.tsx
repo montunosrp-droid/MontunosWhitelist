@@ -81,7 +81,7 @@ export default function WhitelistFormPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Penalizar cuando se salen / cambian de pestaña o ventana
+  // Penalizar SOLO cuando cambian de pestaña / ventana (tab oculta)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -114,26 +114,23 @@ export default function WhitelistFormPage() {
     };
 
     const handleVisibility = () => {
+      // Solo penalizamos cuando el documento queda oculto (cambian de tab / minimizan)
       if (document.hidden) {
         applyPenalty();
       }
     };
 
-    const handleBlur = () => {
-      applyPenalty();
-    };
-
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("blur", handleBlur);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("blur", handleBlur);
     };
   }, []);
 
   // Construcción de URL con ID del query (?id=...)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const params = new URLSearchParams(window.location.search);
 
     const fParam = (params.get("f") ?? "1") as "1" | "2";
@@ -157,6 +154,20 @@ export default function WhitelistFormPage() {
   const seconds = secondsLeft % 60;
 
   const handleExit = () => {
+    // Penalizamos también cuando eligen salir a propósito
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const fParam = (params.get("f") ?? "1") as "1" | "2";
+      const discordId = params.get("id");
+      const penaltyKey = getPenaltyKey(discordId, fParam);
+
+      const currentPenalty = Number(
+        window.localStorage.getItem(penaltyKey) ?? "0"
+      );
+      const newPenalty = currentPenalty + 5 * 60;
+      window.localStorage.setItem(penaltyKey, String(newPenalty));
+    }
+
     setLocation("/");
   };
 
