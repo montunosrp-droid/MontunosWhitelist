@@ -31,7 +31,7 @@ export default function AlreadyWhitelisted() {
           <CardContent className="space-y-5 text-center text-slate-200">
             
             <p className="text-lg font-semibold text-orange-300">
-              ¡Si vos YA TENÉS WHITELIST, chele! 
+              ¡Si vos YA TENÉS WHITELIST! 
             </p>
 
             <p>
@@ -39,11 +39,6 @@ export default function AlreadyWhitelisted() {
               <span className="font-semibold text-orange-400">
                 APROBADA
               </span>.
-            </p>
-
-            <p>
-              Mejor dejá de andar curioseando aquí y andá a rolear, 
-              a trabajar, a delinquir (legalmente 👀) o hacer billete en la city. 💸
             </p>
 
 
