@@ -35,7 +35,7 @@ export default function AlreadyWhitelisted() {
             </p>
 
             <p>
-              Andás queriendo hacer otra WL o que onda, ya su WL esta {" "}
+              Andás queriendo hacer otra WL o que onda, ya su WL esta 
               <span className="font-semibold text-orange-400">
                 APROBADA
               </span>.
