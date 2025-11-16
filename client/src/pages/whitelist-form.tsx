@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const TOTAL_TIME_SECONDS = 20 * 60; // 15 minutos
+const TOTAL_TIME_SECONDS = 20 * 60; // 20 minutos
 
 // Config de formularios: SOLO ID, sin nombre
 const FORMS: Record<"1" | "2", { baseUrl: string; idField: string }> = {
@@ -20,6 +20,13 @@ const FORMS: Record<"1" | "2", { baseUrl: string; idField: string }> = {
   },
 };
 
+// === SISTEMA DE TIMER + PENALIZACIÓN ===
+const getStartKey = (id: string | null, f: string) =>
+  `wl_start_${id ?? "unknown"}_${f}`;
+
+const getPenaltyKey = (id: string | null, f: string) =>
+  `wl_penalty_${id ?? "unknown"}_${f}`;
+
 export default function WhitelistFormPage() {
   const [, setLocation] = useLocation();
 
@@ -27,20 +34,102 @@ export default function WhitelistFormPage() {
   const [isTimeOver, setIsTimeOver] = useState(false);
   const [formUrl, setFormUrl] = useState<string>("");
 
-  // TIMER
+  // TIMER con tiempo persistente + penalización
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const fParam = (params.get("f") ?? "1") as "1" | "2";
+    const discordId = params.get("id");
+
+    const startKey = getStartKey(discordId, fParam);
+    const penaltyKey = getPenaltyKey(discordId, fParam);
+
+    const now = Date.now();
+    let startTime = Number(window.localStorage.getItem(startKey));
+
+    // Si es la primera vez que entra, seteamos el inicio AHORITA
+    if (!startTime) {
+      startTime = now;
+      window.localStorage.setItem(startKey, String(startTime));
+    }
+
     const timer = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsTimeOver(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const currentNow = Date.now();
+
+      const storedStartTime = Number(
+        window.localStorage.getItem(startKey) ?? String(startTime)
+      );
+      const penaltySeconds = Number(
+        window.localStorage.getItem(penaltyKey) ?? "0"
+      );
+
+      const elapsedSeconds =
+        Math.floor((currentNow - storedStartTime) / 1000) + penaltySeconds;
+
+      const remaining = TOTAL_TIME_SECONDS - elapsedSeconds;
+
+      if (remaining <= 0) {
+        setSecondsLeft(0);
+        setIsTimeOver(true);
+        clearInterval(timer);
+      } else {
+        setSecondsLeft(remaining);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  // Penalizar cuando se salen / cambian de pestaña o ventana
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const fParam = (params.get("f") ?? "1") as "1" | "2";
+    const discordId = params.get("id");
+
+    const penaltyKey = getPenaltyKey(discordId, fParam);
+
+    const applyPenalty = () => {
+      // Si ya se acabó el tiempo, ya no sumamos más penalización
+      setSecondsLeft((prev) => {
+        if (prev <= 0) return 0;
+
+        const currentPenalty = Number(
+          window.localStorage.getItem(penaltyKey) ?? "0"
+        );
+        const newPenalty = currentPenalty + 5 * 60; // 5 minutos
+
+        window.localStorage.setItem(penaltyKey, String(newPenalty));
+
+        const updated = prev - 5 * 60;
+        if (updated <= 0) {
+          setIsTimeOver(true);
+          return 0;
+        }
+
+        return updated;
+      });
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        applyPenalty();
+      }
+    };
+
+    const handleBlur = () => {
+      applyPenalty();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleBlur);
+    };
   }, []);
 
   // Construcción de URL con ID del query (?id=...)
