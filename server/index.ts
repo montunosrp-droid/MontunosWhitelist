@@ -39,6 +39,8 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as DiscordStrategy } from "passport-discord";
 import fetch from "node-fetch";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 
@@ -114,7 +116,8 @@ app.get(
         return res.redirect("/no-whitelist");
       }
 
-      return res.redirect("/success");
+      // ✅ IMPORTANTE: primero instrucciones, NO form directo
+      return res.redirect("/instructions");
     } catch (err) {
       console.error("Error in Discord callback handler:", err);
       return res.redirect("/error=callback_failed");
@@ -125,6 +128,21 @@ app.get(
 // Health check para Render y UptimeRobot
 app.get("/health", (_req, res) => {
   res.status(200).send("ok");
+});
+
+// ✅ SERVIR FRONTEND (evita "Cannot GET /")
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// En build, Vite deja el frontend en: dist/public
+const publicDir = path.join(__dirname, "public");
+app.use(express.static(publicDir));
+
+// Fallback SPA: cualquier ruta que NO sea /api ni /health carga index.html
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  if (req.path === "/health") return next();
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 const PORT = process.env.PORT || 10000;
