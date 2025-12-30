@@ -10,7 +10,7 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 
 // Trust proxy (Render/Cloudflare) so secure cookies work correctly
-app.set(\"trust proxy\", 1);
+app.set("trust proxy", 1);
 
 // Health check para Render y UptimeRobot
 app.get("/health", (_req, res) => {
