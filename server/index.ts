@@ -1,124 +1,133 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
-import { registerRoutes } from "./routes";
-import { setupAuth } from "./auth";
-import { setupVite, serveStatic, log } from "./vite";
+async function checkUserHasRole(discordId: string): Promise<boolean> {
+  try {
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const guildId = process.env.DISCORD_GUILD_ID;
+    const roleId = process.env.DISCORD_WL_ROLE_ID;
 
-const app = express();
+    if (!botToken || !guildId || !roleId) {
+      console.error("Missing Discord role check env vars");
+      return false;
+    }
 
-// Trust proxy (Render/Cloudflare) so secure cookies work correctly
-app.set("trust proxy", 1);
+    const response = await fetch(
+      `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`,
+      {
+        headers: {
+          Authorization: `Bot ${botToken}`,
+        },
+      }
+    );
 
-// Health check para Render y UptimeRobot
-app.get("/health", (_req, res) => {
-  res.status(200).send("OK");
-});
+    if (!response.ok) {
+      console.error("Failed to fetch guild member:", response.status);
+      return false;
+    }
 
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
+    const member = await response.json();
+    return Array.isArray(member.roles) && member.roles.includes(roleId);
+  } catch (err) {
+    console.error("Error checking user role:", err);
+    return false;
   }
 }
 
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-app.use(express.urlencoded({ extended: false }));
+import express from "express";
+import session from "express-session";
+import passport from "passport";
+import { Strategy as DiscordStrategy } from "passport-discord";
+import fetch from "node-fetch";
+
+const app = express();
+
+app.set("trust proxy", 1);
 
 app.use(
   session({
-    secret:
-      process.env.SESSION_SECRET ||
-      "montunos-whitelist-secret-change-in-production",
+    secret: process.env.SESSION_SECRET || "dev-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      secure: true,
+      sameSite: "none",
     },
-    proxy: true,
-  }),
+  })
 );
 
-setupAuth(app);
+app.use(passport.initialize());
+app.use(passport.session());
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+passport.serializeUser((user: any, done) => done(null, user));
+passport.deserializeUser((obj: any, done) => done(null, obj));
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+const {
+  DISCORD_CLIENT_ID,
+  DISCORD_CLIENT_SECRET,
+  DISCORD_REDIRECT_URI,
+} = process.env;
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) {
+  throw new Error(
+    `Discord OAuth credentials not configured. Missing: ${[
+      !DISCORD_CLIENT_ID && "DISCORD_CLIENT_ID",
+      !DISCORD_CLIENT_SECRET && "DISCORD_CLIENT_SECRET",
+      !DISCORD_REDIRECT_URI && "DISCORD_REDIRECT_URI",
+    ]
+      .filter(Boolean)
+      .join(", ")}`
+  );
+}
+
+passport.use(
+  new DiscordStrategy(
+    {
+      clientID: DISCORD_CLIENT_ID,
+      clientSecret: DISCORD_CLIENT_SECRET,
+      callbackURL: DISCORD_REDIRECT_URI,
+      scope: ["identify"],
+    },
+    async (_accessToken, _refreshToken, profile, done) => {
+      try {
+        return done(null, profile);
+      } catch (err) {
+        return done(err as Error);
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
     }
-  });
+  )
+);
 
-  next();
+app.get("/api/auth/discord", passport.authenticate("discord"));
+
+app.get(
+  "/api/auth/discord/callback",
+  passport.authenticate("discord", { failureRedirect: "/error=callback_failed" }),
+  async (req, res) => {
+    try {
+      const user = req.user as any;
+      const discordId = user.id;
+
+      const hasRole = await checkUserHasRole(discordId);
+
+      if (!hasRole) {
+        return res.redirect("/no-whitelist");
+      }
+
+      return res.redirect("/success");
+    } catch (err) {
+      console.error("Error in Discord callback handler:", err);
+      return res.redirect("/error=callback_failed");
+    }
+  }
+);
+
+// Health check para Render y UptimeRobot
+app.get("/health", (_req, res) => {
+  res.status(200).send("ok");
 });
 
-(async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-
-  app.get("/health", (_req, res) => {
-    res.send("ok");
-  });
-
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
-})();
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`[express] serving on port ${PORT}`);
+});
