@@ -34,6 +34,16 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.get("/api/me", (req, res) => {
+  const user = req.user as any;
+
+  if (!user || !user.id) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  return res.json({ id: user.id });
+});
+
 passport.serializeUser((user: any, done) => done(null, user));
 passport.deserializeUser((obj: any, done) => done(null, obj));
 
