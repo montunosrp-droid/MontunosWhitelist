@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +21,19 @@ const FORMS: Record<"1" | "2", { baseUrl: string; idField: string }> = {
 };
 
 // === SISTEMA DE TIMER + PENALIZACIÓN ===
-const getStartKey = (id: string | null, f: string) =>
-  `wl_start_${id ?? "unknown"}_${f}`;
+const getStartKey = (id: string | null, f: string) => `wl_start_${id ?? "unknown"}_${f}`;
+const getPenaltyKey = (id: string | null, f: string) => `wl_penalty_${id ?? "unknown"}_${f}`;
 
-const getPenaltyKey = (id: string | null, f: string) =>
-  `wl_penalty_${id ?? "unknown"}_${f}`;
+async function getDiscordIdFromSession(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/me", { credentials: "include" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { id?: string };
+    return data?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default function WhitelistFormPage() {
   const [, setLocation] = useLocation();
@@ -34,13 +42,48 @@ export default function WhitelistFormPage() {
   const [isTimeOver, setIsTimeOver] = useState(false);
   const [formUrl, setFormUrl] = useState<string>("");
 
-  // TIMER con tiempo persistente + penalización
+  const [fParam, setFParam] = useState<"1" | "2">("1");
+  const [discordId, setDiscordId] = useState<string | null>(null);
+
+  // 1) Resolver f y discordId (por query o por sesión)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
-    const fParam = (params.get("f") ?? "1") as "1" | "2";
-    const discordId = params.get("id");
+
+    // f: si viene, lo usamos; si no, usamos uno random persistente por sesión
+    const fFromUrl = params.get("f") as "1" | "2" | null;
+    const storedF = window.sessionStorage.getItem("wl_form_variant") as "1" | "2" | null;
+
+    let finalF: "1" | "2" = "1";
+    if (fFromUrl === "1" || fFromUrl === "2") {
+      finalF = fFromUrl;
+      window.sessionStorage.setItem("wl_form_variant", finalF);
+    } else if (storedF === "1" || storedF === "2") {
+      finalF = storedF;
+    } else {
+      finalF = Math.random() < 0.5 ? "1" : "2";
+      window.sessionStorage.setItem("wl_form_variant", finalF);
+    }
+
+    setFParam(finalF);
+
+    // id: si viene en URL, lo usamos; si no, lo pedimos al backend (sesión)
+    const idFromUrl = params.get("id");
+    if (idFromUrl) {
+      setDiscordId(idFromUrl);
+      return;
+    }
+
+    (async () => {
+      const id = await getDiscordIdFromSession();
+      setDiscordId(id);
+    })();
+  }, []);
+
+  // 2) TIMER con tiempo persistente + penalización (usa discordId real si existe)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
     const startKey = getStartKey(discordId, fParam);
     const penaltyKey = getPenaltyKey(discordId, fParam);
@@ -60,13 +103,9 @@ export default function WhitelistFormPage() {
       const storedStartTime = Number(
         window.localStorage.getItem(startKey) ?? String(startTime)
       );
-      const penaltySeconds = Number(
-        window.localStorage.getItem(penaltyKey) ?? "0"
-      );
+      const penaltySeconds = Number(window.localStorage.getItem(penaltyKey) ?? "0");
 
-      const elapsedSeconds =
-        Math.floor((currentNow - storedStartTime) / 1000) + penaltySeconds;
-
+      const elapsedSeconds = Math.floor((currentNow - storedStartTime) / 1000) + penaltySeconds;
       const remaining = TOTAL_TIME_SECONDS - elapsedSeconds;
 
       if (remaining <= 0) {
@@ -79,15 +118,11 @@ export default function WhitelistFormPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [discordId, fParam]);
 
-  // Penalizar SOLO cuando cambian de pestaña / ventana (tab oculta)
+  // 3) Penalizar SOLO cuando cambian de pestaña / ventana (tab oculta)
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const params = new URLSearchParams(window.location.search);
-    const fParam = (params.get("f") ?? "1") as "1" | "2";
-    const discordId = params.get("id");
 
     const penaltyKey = getPenaltyKey(discordId, fParam);
 
@@ -96,9 +131,7 @@ export default function WhitelistFormPage() {
       setSecondsLeft((prev) => {
         if (prev <= 0) return 0;
 
-        const currentPenalty = Number(
-          window.localStorage.getItem(penaltyKey) ?? "0"
-        );
+        const currentPenalty = Number(window.localStorage.getItem(penaltyKey) ?? "0");
         const newPenalty = currentPenalty + 5 * 60; // 5 minutos
 
         window.localStorage.setItem(penaltyKey, String(newPenalty));
@@ -108,37 +141,24 @@ export default function WhitelistFormPage() {
           setIsTimeOver(true);
           return 0;
         }
-
         return updated;
       });
     };
 
     const handleVisibility = () => {
       // Solo penalizamos cuando el documento queda oculto (cambian de tab / minimizan)
-      if (document.hidden) {
-        applyPenalty();
-      }
+      if (document.hidden) applyPenalty();
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [discordId, fParam]);
 
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  // Construcción de URL con ID del query (?id=...)
+  // 4) Construcción de URL con ID (si ya tenemos discordId)
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const params = new URLSearchParams(window.location.search);
-
-    const fParam = (params.get("f") ?? "1") as "1" | "2";
-    const discordId = params.get("id");
-
     const config = FORMS[fParam] ?? FORMS["1"];
 
-    // Si por alguna razón no viene id, mostramos el form sin prefill
+    // Si no tenemos id todavía, mostramos el form sin prefill (mientras carga)
     if (!discordId) {
       setFormUrl(config.baseUrl);
       return;
@@ -146,33 +166,28 @@ export default function WhitelistFormPage() {
 
     const encodedId = encodeURIComponent(discordId);
     const url = `${config.baseUrl}?usp=pp_url&${config.idField}=${encodedId}`;
-
     setFormUrl(url);
-  }, []);
+  }, [discordId, fParam]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
 
+  const timeText = useMemo(() => {
+    return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+  }, [minutes, seconds]);
+
   const handleExit = () => {
     // Penalizamos también cuando eligen salir a propósito
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const fParam = (params.get("f") ?? "1") as "1" | "2";
-      const discordId = params.get("id");
       const penaltyKey = getPenaltyKey(discordId, fParam);
 
-      const currentPenalty = Number(
-        window.localStorage.getItem(penaltyKey) ?? "0"
-      );
+      const currentPenalty = Number(window.localStorage.getItem(penaltyKey) ?? "0");
       const newPenalty = currentPenalty + 5 * 60;
       window.localStorage.setItem(penaltyKey, String(newPenalty));
     }
 
     setLocation("/");
   };
-
-  const timeText =
-    String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50 flex flex-col items-center p-4">
