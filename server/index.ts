@@ -1,50 +1,23 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-async function checkUserHasRole(discordId: string): Promise<boolean> {
-  try {
-    const botToken = process.env.DISCORD_BOT_TOKEN;
-    const guildId = process.env.DISCORD_GUILD_ID;
-    const roleId = process.env.DISCORD_WL_ROLE_ID;
-
-    if (!botToken || !guildId || !roleId) {
-      console.error("Missing Discord role check env vars");
-      return false;
-    }
-
-    const response = await fetch(
-      `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`,
-      {
-        headers: {
-          Authorization: `Bot ${botToken}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error("Failed to fetch guild member:", response.status);
-      return false;
-    }
-
-    const member = await response.json();
-    return Array.isArray(member.roles) && member.roles.includes(roleId);
-  } catch (err) {
-    console.error("Error checking user role:", err);
-    return false;
-  }
-}
-
 import express from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as DiscordStrategy } from "passport-discord";
 import fetch from "node-fetch";
 import path from "path";
-import { fileURLToPath } from "url";
+
+/* =========================
+   CONFIG APP
+========================= */
 
 const app = express();
-
 app.set("trust proxy", 1);
+
+/* =========================
+   SESSION
+========================= */
 
 app.use(
   session({
@@ -64,47 +37,91 @@ app.use(passport.session());
 passport.serializeUser((user: any, done) => done(null, user));
 passport.deserializeUser((obj: any, done) => done(null, obj));
 
+/* =========================
+   ENV CHECK
+========================= */
+
 const {
   DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET,
   DISCORD_REDIRECT_URI,
+  DISCORD_BOT_TOKEN,
+  DISCORD_GUILD_ID,
+  DISCORD_WL_ROLE_ID,
 } = process.env;
 
-if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) {
+const missing = [
+  !DISCORD_CLIENT_ID && "DISCORD_CLIENT_ID",
+  !DISCORD_CLIENT_SECRET && "DISCORD_CLIENT_SECRET",
+  !DISCORD_REDIRECT_URI && "DISCORD_REDIRECT_URI",
+  !DISCORD_BOT_TOKEN && "DISCORD_BOT_TOKEN",
+  !DISCORD_GUILD_ID && "DISCORD_GUILD_ID",
+  !DISCORD_WL_ROLE_ID && "DISCORD_WL_ROLE_ID",
+].filter(Boolean);
+
+if (missing.length) {
   throw new Error(
-    `Discord OAuth credentials not configured. Missing: ${[
-      !DISCORD_CLIENT_ID && "DISCORD_CLIENT_ID",
-      !DISCORD_CLIENT_SECRET && "DISCORD_CLIENT_SECRET",
-      !DISCORD_REDIRECT_URI && "DISCORD_REDIRECT_URI",
-    ]
-      .filter(Boolean)
-      .join(", ")}`
+    `Discord OAuth credentials not configured. Missing: ${missing.join(", ")}`
   );
 }
+
+/* =========================
+   DISCORD STRATEGY
+========================= */
 
 passport.use(
   new DiscordStrategy(
     {
-      clientID: DISCORD_CLIENT_ID,
-      clientSecret: DISCORD_CLIENT_SECRET,
-      callbackURL: DISCORD_REDIRECT_URI,
+      clientID: DISCORD_CLIENT_ID!,
+      clientSecret: DISCORD_CLIENT_SECRET!,
+      callbackURL: DISCORD_REDIRECT_URI!,
       scope: ["identify"],
     },
     async (_accessToken, _refreshToken, profile, done) => {
-      try {
-        return done(null, profile);
-      } catch (err) {
-        return done(err as Error);
-      }
+      return done(null, profile);
     }
   )
 );
+
+/* =========================
+   ROLE CHECK
+========================= */
+
+async function checkUserHasRole(discordId: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordId}`,
+      {
+        headers: {
+          Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.error("Failed to fetch guild member:", res.status);
+      return false;
+    }
+
+    const member = await res.json();
+    return Array.isArray(member.roles) && member.roles.includes(DISCORD_WL_ROLE_ID);
+  } catch (err) {
+    console.error("Role check error:", err);
+    return false;
+  }
+}
+
+/* =========================
+   AUTH ROUTES
+========================= */
 
 app.get("/api/auth/discord", passport.authenticate("discord"));
 
 app.get(
   "/api/auth/discord/callback",
-  passport.authenticate("discord", { failureRedirect: "/error=callback_failed" }),
+  passport.authenticate("discord", {
+    failureRedirect: "/?status=auth_error",
+  }),
   async (req, res) => {
     try {
       const user = req.user as any;
@@ -113,37 +130,39 @@ app.get(
       const hasRole = await checkUserHasRole(discordId);
 
       if (!hasRole) {
-        return res.redirect("/no-whitelist");
+        return res.redirect("/?status=no_whitelist");
       }
 
-      // ✅ IMPORTANTE: primero instrucciones, NO form directo
-      return res.redirect("/instructions");
+      return res.redirect("/?status=instructions");
     } catch (err) {
-      console.error("Error in Discord callback handler:", err);
-      return res.redirect("/error=callback_failed");
+      console.error("Callback error:", err);
+      return res.redirect("/?status=auth_error");
     }
   }
 );
 
-// Health check para Render y UptimeRobot
+/* =========================
+   STATIC FRONTEND (VITE)
+========================= */
+
+const publicPath = path.join(process.cwd(), "dist/public");
+app.use(express.static(publicPath));
+
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+/* =========================
+   HEALTH
+========================= */
+
 app.get("/health", (_req, res) => {
   res.status(200).send("ok");
 });
 
-// ✅ SERVIR FRONTEND (evita "Cannot GET /")
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// En build, Vite deja el frontend en: dist/public
-const publicDir = path.join(__dirname, "public");
-app.use(express.static(publicDir));
-
-// Fallback SPA: cualquier ruta que NO sea /api ni /health carga index.html
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
-  if (req.path === "/health") return next();
-  res.sendFile(path.join(publicDir, "index.html"));
-});
+/* =========================
+   START
+========================= */
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
