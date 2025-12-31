@@ -119,9 +119,7 @@ app.get("/api/auth/discord", passport.authenticate("discord"));
 
 app.get(
   "/api/auth/discord/callback",
-  passport.authenticate("discord", {
-    failureRedirect: "/?status=auth_error",
-  }),
+  passport.authenticate("discord", { failureRedirect: "/cooldown" }),
   async (req, res) => {
     try {
       const user = req.user as any;
@@ -130,13 +128,13 @@ app.get(
       const hasRole = await checkUserHasRole(discordId);
 
       if (!hasRole) {
-        return res.redirect("/?status=no_whitelist");
+        return res.redirect("/cooldown");
       }
 
-      return res.redirect("/?status=instructions");
+      return res.redirect("/instructions");
     } catch (err) {
-      console.error("Callback error:", err);
-      return res.redirect("/?status=auth_error");
+      console.error("Error in Discord callback handler:", err);
+      return res.redirect("/cooldown");
     }
   }
 );
