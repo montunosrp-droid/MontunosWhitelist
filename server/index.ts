@@ -13,6 +13,10 @@ import path from "path";
 ========================= */
 
 const app = express();
+app.use((req, _res, next) => {
+  console.log(`[REQ] ${req.method} ${req.url}`);
+  next();
+});
 app.set("trust proxy", 1);
 
 /* =========================
@@ -36,6 +40,8 @@ app.use(passport.session());
 
 app.get("/api/me", (req, res) => {
   const user = req.user as any;
+
+  console.log("[/api/me] session user:", user ? user.id : "NO SESSION");
 
   if (!user || !user.id) {
     return res.status(401).json({ message: "Not authenticated" });
