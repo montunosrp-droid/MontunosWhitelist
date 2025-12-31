@@ -14,9 +14,12 @@ import path from "path";
 
 const app = express();
 app.use((req, _res, next) => {
-  console.log(`[REQ] ${req.method} ${req.url}`);
+  if (req.path.startsWith("/api")) {
+    console.log(`[REQ] ${req.method} ${req.path}`);
+  }
   next();
 });
+
 app.set("trust proxy", 1);
 
 /* =========================
