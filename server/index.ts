@@ -138,7 +138,7 @@ app.get("/api/auth/discord", passport.authenticate("discord"));
 
 app.get(
   "/api/auth/discord/callback",
-  passport.authenticate("discord", { failureRedirect: "/cooldown" }),
+  passport.authenticate("discord", { failureRedirect: "/error=callback_failed" }),
   async (req, res) => {
     try {
       const user = req.user as any;
@@ -146,14 +146,16 @@ app.get(
 
       const hasRole = await checkUserHasRole(discordId);
 
-      if (!hasRole) {
-        return res.redirect("/cooldown");
+      // ✅ Si ya tiene WL -> ya no hace examen
+      if (hasRole) {
+        return res.redirect("/already-whitelist");
       }
 
+      // ✅ Si NO tiene WL -> lo mandamos al flujo del examen
       return res.redirect("/instructions");
     } catch (err) {
       console.error("Error in Discord callback handler:", err);
-      return res.redirect("/cooldown");
+      return res.redirect("/error=callback_failed");
     }
   }
 );
