@@ -148,7 +148,7 @@ app.get(
 
       // ✅ Si ya tiene WL -> ya no hace examen
       if (hasRole) {
-        return res.redirect("/already-whitelist");
+        return res.redirect("/already-whitelisted");
       }
 
       // ✅ Si NO tiene WL -> lo mandamos al flujo del examen
